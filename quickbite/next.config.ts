@@ -15,7 +15,31 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      // Allow all https image domains (for product images from any source)
+      {
+        protocol: "https",
+        hostname: "**",
+        port: "",
+        pathname: "/**",
+      },
+      // Allow http too (for local/dev image URLs)
+      {
+        protocol: "http",
+        hostname: "**",
+        port: "",
+        pathname: "/**",
+      },
     ],
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:3009/:path*",
+        },
+      ],
+    };
   },
 };
 
