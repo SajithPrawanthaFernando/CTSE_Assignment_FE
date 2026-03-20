@@ -1,29 +1,48 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Loader2 } from "lucide-react";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import { cartService } from "@/services/cart.service";
 
 export const ProductCard = ({ product }: { product: Product }) => {
-  // Hook into our global stores
+  const [isAdding, setIsAdding] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
+  const { isAuthenticated } = useAuthStore();
   const addNotification = useNotificationStore(
     (state) => state.addNotification,
   );
 
-  const handleAddToCart = () => {
-    addItem(product);
-    // Trigger the notification system we built
-    addNotification(`${product.name} added to cart!`, "success");
+  const handleAddToCart = async () => {
+    try {
+      setIsAdding(true);
+
+      // ← Always add to local Zustand store
+      addItem(product);
+
+      // ← If logged in, also sync with backend
+      if (isAuthenticated) {
+        await cartService.addItem(product.id, 1);
+      }
+
+      addNotification(`${product.name} added to cart!`, "success");
+    } catch (error) {
+      // ← Even if backend fails, local cart is updated
+      addNotification(`${product.name} added to cart!`, "success");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
     <motion.div
       layout
-      layoutId={product.id} // Ensures smooth movement when filtering categories
+      layoutId={product.id}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -56,10 +75,15 @@ export const ProductCard = ({ product }: { product: Product }) => {
           </span>
           <button
             onClick={handleAddToCart}
-            className="bg-gray-900 text-white p-2 rounded-xl hover:bg-orange-600 transition-colors active:scale-95"
+            disabled={isAdding}
+            className="bg-gray-900 text-white p-2 rounded-xl hover:bg-orange-600 transition-colors active:scale-95 disabled:opacity-50"
             aria-label="Add to cart"
           >
-            <Plus size={20} />
+            {isAdding ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <Plus size={20} />
+            )}
           </button>
         </div>
       </div>

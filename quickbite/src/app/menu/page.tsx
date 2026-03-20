@@ -7,50 +7,54 @@ import { Product } from "@/types";
 
 const MOCK_PRODUCTS: Product[] = [
   {
-    id: "1",
+    id: "prod_001",           // ← changed from "1"
     name: "Classic Cheeseburger",
     category: "Burgers",
-    price: 12.99,
+    price: 8.99,              // ← match backend price
     rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500",
-    description:
-      "Juicy beef patty with melted cheddar, lettuce, and our secret sauce.",
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500",
+    description: "Juicy beef patty with melted cheddar, lettuce, and our secret sauce.",
   },
   {
-    id: "2",
-    name: "Margherita Pizza",
-    category: "Pizza",
-    price: 14.5,
+    id: "prod_002",           // ← changed from "2"
+    name: "Chicken Wrap",
+    category: "Wraps",
+    price: 7.49,              // ← match backend price
     rating: 4.7,
-    image:
-      "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=500",
-    description: "Fresh mozzarella, basil, and San Marzano tomato sauce.",
+    image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=500",
+    description: "Fresh chicken wrap with lettuce and sauce.",
   },
   {
-    id: "3",
-    name: "Truffle Mushroom Pasta",
-    category: "Pasta",
-    price: 18.0,
+    id: "prod_003",           // ← changed from "3"
+    name: "Fish & Chips",
+    category: "Mains",
+    price: 12.99,             // ← match backend price
     rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1473093226795-af9932fe5856?q=80&w=500",
-    description: "Creamy fettuccine with wild mushrooms and white truffle oil.",
+    image: "https://images.unsplash.com/photo-1473093226795-af9932fe5856?q=80&w=500",
+    description: "Crispy fish fillet with golden chips.",
   },
   {
-    id: "4",
-    name: "Iced Caramel Macchiato",
-    category: "Beverages",
-    price: 5.5,
+    id: "prod_004",           // ← changed from "4"
+    name: "Caesar Salad",
+    category: "Salads",
+    price: 6.99,              // ← match backend price
     rating: 4.6,
-    image:
-      "https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=500",
-    description:
-      "Freshly brewed espresso with steamed milk and caramel drizzle.",
+    image: "https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=500",
+    description: "Fresh romaine lettuce with caesar dressing.",
+  },
+  {
+    id: "prod_005",           // ← add new product
+    name: "Soft Drink",
+    category: "Beverages",
+    price: 2.49,              // ← match backend price
+    rating: 4.5,
+    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=500",
+    description: "Refreshing soft drink.",
   },
 ];
 
-const categories = ["All", "Burgers", "Pizza", "Pasta", "Beverages"];
+// ← Update categories to match
+const categories = ["All", "Burgers", "Pizza", "Pasta", "Beverages", "Wraps", "Mains", "Salads"];
 
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("All");

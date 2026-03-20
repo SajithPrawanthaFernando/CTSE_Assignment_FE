@@ -3,32 +3,31 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Trash2,
-  Plus,
-  Minus,
-  ShoppingBag,
-  ArrowLeft,
-  CreditCard,
-  Truck,
+  Trash2, Plus, Minus, ShoppingBag,
+  ArrowLeft, CreditCard, Truck, Loader2,
 } from "lucide-react";
-
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
-import { cn } from "@/lib/utils";
+import { cartService } from "@/services/cart.service";
 import { OrderSuccess } from "@/components/motion/shared/OrderSuccess";
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
   const [isOrdered, setIsOrdered] = useState(false);
-  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } =
-    useCartStore();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification,
-  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [orderError, setOrderError] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
 
-  // 1. Handle Hydration to sync with persistent storage
+  const router = useRouter();
+
+  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -37,13 +36,76 @@ export default function CartPage() {
   const deliveryFee = subtotal > 0 ? 2.5 : 0;
   const total = subtotal + deliveryFee;
 
-  const handlePlaceOrder = () => {
-    setIsOrdered(true);
-    addNotification("Order placed successfully!", "success");
-    clearCart();
+  // ← Handle quantity update with backend sync
+  const handleUpdateQuantity = async (id: string, delta: number) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    const newQuantity = Math.max(1, item.quantity + delta);
+
+    // ← Update local store first
+    updateQuantity(id, delta);
+
+    // ← Sync with backend if logged in
+    if (isAuthenticated) {
+      try {
+        await cartService.updateItem(id, newQuantity);
+      } catch (error) {
+        // ← Silent fail — local store already updated
+      }
+    }
   };
 
-  // 2. Return skeleton/null while mounting
+  // ← Handle remove item with backend sync
+  const handleRemoveItem = async (id: string) => {
+    // ← Remove from local store first
+    removeItem(id);
+
+    // ← Sync with backend if logged in
+    if (isAuthenticated) {
+      try {
+        await cartService.removeItem(id);
+      } catch (error) {
+        // ← Silent fail — local store already updated
+      }
+    }
+  };
+
+  // ← Handle checkout
+  const handlePlaceOrder = async () => {
+    if (!isAuthenticated) {
+      addNotification('Please login to place an order', 'error');
+      router.push('/login');
+      return;
+    }
+
+    if (!shippingAddress.trim()) {
+      setOrderError('Please enter a delivery address');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setOrderError('');
+
+      // ← Call backend checkout
+      await cartService.checkout(shippingAddress);
+
+      // ← Clear local cart after successful order
+      clearCart();
+      setIsOrdered(true);
+      addNotification('Order placed successfully!', 'success');
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        'Failed to place order. Please try again.';
+      setOrderError(message);
+      addNotification(message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
@@ -58,7 +120,6 @@ export default function CartPage() {
     );
   }
 
-  // 3. SUCCESS STATE
   if (isOrdered) {
     return (
       <div className="min-h-screen pt-32 flex items-center justify-center bg-gray-50">
@@ -67,7 +128,6 @@ export default function CartPage() {
     );
   }
 
-  // 4. EMPTY STATE
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
@@ -84,8 +144,7 @@ export default function CartPage() {
               Your cart is empty
             </h2>
             <p className="text-gray-500 text-lg leading-relaxed">
-              Looks like you haven't added any delicious meals to your cart yet.
-              Let's find something tasty!
+              Looks like you haven't added any delicious meals yet!
             </p>
           </div>
           <Link
@@ -100,7 +159,6 @@ export default function CartPage() {
     );
   }
 
-  // 5. ACTIVE CART STATE
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
@@ -127,7 +185,6 @@ export default function CartPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="flex flex-col sm:flex-row items-center gap-6 bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm"
                 >
-                  {/* Product Image */}
                   <div className="relative h-28 w-28 rounded-2xl overflow-hidden flex-shrink-0">
                     <Image
                       src={item.image}
@@ -136,24 +193,16 @@ export default function CartPage() {
                       className="object-cover"
                     />
                   </div>
-
-                  {/* Product Info */}
                   <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-bold text-xl text-gray-900">
-                      {item.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium">
-                      {item.category}
-                    </p>
+                    <h3 className="font-bold text-xl text-gray-900">{item.name}</h3>
+                    <p className="text-sm text-gray-500 font-medium">{item.category}</p>
                     <p className="text-orange-600 font-black text-lg mt-1">
                       ${item.price.toFixed(2)}
                     </p>
                   </div>
-
-                  {/* Quantity Controls */}
                   <div className="flex items-center gap-5 bg-gray-50 px-5 py-2.5 rounded-2xl">
                     <button
-                      onClick={() => updateQuantity(item.id, -1)}
+                      onClick={() => handleUpdateQuantity(item.id, -1)}
                       className="text-gray-400 hover:text-orange-600 transition-colors"
                     >
                       <Minus size={20} />
@@ -162,16 +211,14 @@ export default function CartPage() {
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={() => handleUpdateQuantity(item.id, 1)}
                       className="text-gray-400 hover:text-orange-600 transition-colors"
                     >
                       <Plus size={20} />
                     </button>
                   </div>
-
-                  {/* Remove Button */}
                   <button
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => handleRemoveItem(item.id)}
                     className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                   >
                     <Trash2 size={24} />
@@ -191,7 +238,7 @@ export default function CartPage() {
               Order Summary
             </h2>
 
-            <div className="space-y-5 mb-8">
+            <div className="space-y-5 mb-6">
               <div className="flex justify-between text-gray-600 font-medium">
                 <span className="flex items-center gap-3">
                   <ShoppingBag size={20} className="text-gray-400" /> Subtotal
@@ -216,14 +263,58 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Shipping Address */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Delivery Address{' '}
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)}
+                placeholder="Enter your delivery address"
+                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="space-y-3">
               <button
                 onClick={handlePlaceOrder}
-                className="w-full bg-gray-900 text-white py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-orange-600 transition-all active:scale-95 shadow-xl shadow-gray-200"
+                disabled={isLoading}
+                className="w-full bg-gray-900 text-white py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-orange-600 transition-all active:scale-95 shadow-xl shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CreditCard size={22} />
-                Confirm & Pay
+                {isLoading ? (
+                  <>
+                    <Loader2 size={22} className="animate-spin" />
+                    Placing Order...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={22} />
+                    Confirm & Pay
+                  </>
+                )}
               </button>
+
+              {/* Error message */}
+              {orderError && (
+                <p className="text-red-500 text-sm text-center font-medium">
+                  {orderError}
+                </p>
+              )}
+
+              {/* Login prompt */}
+              {!isAuthenticated && (
+                <p className="text-orange-500 text-sm text-center font-medium">
+                  Please{' '}
+                  <Link href="/login" className="underline font-bold">
+                    login
+                  </Link>
+                  {' '}to place an order
+                </p>
+              )}
+
               <p className="text-xs text-center text-gray-400 font-medium px-4">
                 Tax included. Secure checkout powered by GustoBistro Pay.
               </p>
