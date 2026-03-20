@@ -9,11 +9,13 @@ import {
   Settings,
   ArrowLeft,
   PieChart,
+  UtensilsCrossed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const adminLinks = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Products", href: "/admin/products", icon: UtensilsCrossed },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { name: "Analytics", href: "/admin/analytics", icon: PieChart },
