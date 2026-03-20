@@ -1,74 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductCard } from "@/components/menu/ProductCard";
 import { Product } from "@/types";
+import { productService } from "@/services/product.service";
 
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "prod_001",           // ← changed from "1"
-    name: "Classic Cheeseburger",
-    category: "Burgers",
-    price: 8.99,              // ← match backend price
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500",
-    description: "Juicy beef patty with melted cheddar, lettuce, and our secret sauce.",
-  },
-  {
-    id: "prod_002",           // ← changed from "2"
-    name: "Chicken Wrap",
-    category: "Wraps",
-    price: 7.49,              // ← match backend price
-    rating: 4.7,
-    image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?q=80&w=500",
-    description: "Fresh chicken wrap with lettuce and sauce.",
-  },
-  {
-    id: "prod_003",           // ← changed from "3"
-    name: "Fish & Chips",
-    category: "Mains",
-    price: 12.99,             // ← match backend price
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1473093226795-af9932fe5856?q=80&w=500",
-    description: "Crispy fish fillet with golden chips.",
-  },
-  {
-    id: "prod_004",           // ← changed from "4"
-    name: "Caesar Salad",
-    category: "Salads",
-    price: 6.99,              // ← match backend price
-    rating: 4.6,
-    image: "https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=500",
-    description: "Fresh romaine lettuce with caesar dressing.",
-  },
-  {
-    id: "prod_005",           // ← add new product
-    name: "Soft Drink",
-    category: "Beverages",
-    price: 2.49,              // ← match backend price
-    rating: 4.5,
-    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=500",
-    description: "Refreshing soft drink.",
-  },
-];
+const categories = ["All", "Burgers", "Pizza", "Pasta", "Beverages"] as const;
 
-// ← Update categories to match
-const categories = ["All", "Burgers", "Pizza", "Pasta", "Beverages", "Wraps", "Mains", "Salads"];
+const mapProduct = (data: any): Product => ({
+  ...data,
+  id: data._id ?? data.id ?? crypto.randomUUID(),
+  image: data.image ?? data.imageUrl ?? "",
+});
 
 export default function MenuPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState<typeof categories[number]>("All");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await productService.getProducts();
+        const raw = Array.isArray(data) ? data : (data as any)?.data || [];
+        setProducts(raw.map(mapProduct));
+      } catch (err) {
+        setError("Failed to load products. Please try again later.");
+        console.error("Error fetching products:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const filteredProducts =
     activeCategory === "All"
-      ? MOCK_PRODUCTS
-      : MOCK_PRODUCTS.filter((p) => p.category === activeCategory);
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
   return (
-    // FIXED: Added pt-28 to clear the fixed header and min-h-screen for background consistency
     <div className="min-h-screen bg-gray-50 pt-28 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
+        {/* Header */}
         <div className="text-center mb-12">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
@@ -105,29 +84,56 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Empty State */}
-        {filteredProducts.length === 0 && (
+        {/* Loading */}
+        {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
             <p className="text-gray-400 text-xl font-medium">
-              No items found in this category.
+              Loading delicious offerings...
             </p>
           </motion.div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20 bg-red-50 rounded-lg border border-red-200 p-8"
+          >
+            <p className="text-red-600 text-xl font-medium">{error}</p>
+          </motion.div>
+        )}
+
+        {/* Grid */}
+        {!loading && !error && (
+          <>
+            <motion.div
+              layout
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+            >
+              <AnimatePresence mode="popLayout">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
+            {filteredProducts.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-20"
+              >
+                <p className="text-gray-400 text-xl font-medium">
+                  No items found in this category.
+                </p>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
     </div>
