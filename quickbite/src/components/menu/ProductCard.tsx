@@ -1,28 +1,50 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Loader2 } from "lucide-react";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import { cartService } from "@/services/cart.service";
 
 // Local fallback — put any food image at public/placeholder-food.jpg
 const FALLBACK_IMAGE = "/placeholder-food.jpg";
 
 export const ProductCard = ({ product }: { product: Product }) => {
+  const [isAdding, setIsAdding] = useState(false);
+
   const addItem = useCartStore((state) => state.addItem);
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const { isAuthenticated } = useAuthStore();         // ← add
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification,
+  );
 
-  const productId = product.id ?? (product as any)._id ?? "";
+  const handleAddToCart = async () => {
+    // ← Check if logged in first
+    if (!isAuthenticated) {
+      addNotification('Please login to add items to cart', 'error');
+      return; // ← stop here, don't add to cart
+    }
 
-  // Safely resolve image — skip empty strings
-  const rawImage = product.image ?? (product as any).imageUrl ?? "";
-  const productImage = rawImage.trim() !== "" ? rawImage : FALLBACK_IMAGE;
+    try {
+      setIsAdding(true);
 
-  const handleAddToCart = () => {
-    addItem({ ...product, id: productId });
-    addNotification(`${product.name} added to cart!`, "success");
+      // ← Add to local Zustand store
+      addItem(product);
+
+      // ← Sync with backend
+      await cartService.addItem(product.id, 1);
+
+      addNotification(`${product.name} added to cart!`, 'success');
+    } catch (error) {
+      // ← Even if backend fails, local cart is updated
+      addNotification(`${product.name} added to cart!`, 'success');
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -78,7 +100,11 @@ export const ProductCard = ({ product }: { product: Product }) => {
             className="bg-gray-900 text-white p-2 rounded-xl hover:bg-orange-600 transition-colors active:scale-95"
             aria-label={`Add ${product.name} to cart`}
           >
-            <Plus size={20} />
+            {isAdding ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <Plus size={20} />
+            )}
           </button>
         </div>
       </div>
