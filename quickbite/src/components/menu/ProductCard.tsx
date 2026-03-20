@@ -12,28 +12,33 @@ import { cartService } from "@/services/cart.service";
 
 export const ProductCard = ({ product }: { product: Product }) => {
   const [isAdding, setIsAdding] = useState(false);
+
   const addItem = useCartStore((state) => state.addItem);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();         // ← add
   const addNotification = useNotificationStore(
     (state) => state.addNotification,
   );
 
   const handleAddToCart = async () => {
+    // ← Check if logged in first
+    if (!isAuthenticated) {
+      addNotification('Please login to add items to cart', 'error');
+      return; // ← stop here, don't add to cart
+    }
+
     try {
       setIsAdding(true);
 
-      // ← Always add to local Zustand store
+      // ← Add to local Zustand store
       addItem(product);
 
-      // ← If logged in, also sync with backend
-      if (isAuthenticated) {
-        await cartService.addItem(product.id, 1);
-      }
+      // ← Sync with backend
+      await cartService.addItem(product.id, 1);
 
-      addNotification(`${product.name} added to cart!`, "success");
+      addNotification(`${product.name} added to cart!`, 'success');
     } catch (error) {
       // ← Even if backend fails, local cart is updated
-      addNotification(`${product.name} added to cart!`, "success");
+      addNotification(`${product.name} added to cart!`, 'success');
     } finally {
       setIsAdding(false);
     }

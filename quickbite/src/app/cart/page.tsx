@@ -26,7 +26,7 @@ export default function CartPage() {
 
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const { isAuthenticated } = useAuthStore();
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const { addNotification, addConfirmation } = useNotificationStore(); // ← updated
 
   useEffect(() => {
     setMounted(true);
@@ -41,7 +41,10 @@ export default function CartPage() {
     const item = items.find(i => i.id === id);
     if (!item) return;
 
-    const newQuantity = Math.max(1, item.quantity + delta);
+    // ← Prevent going below 1
+    if (item.quantity <= 1 && delta < 0) return;
+
+    const newQuantity = item.quantity + delta;
 
     // ← Update local store first
     updateQuantity(id, delta);
@@ -51,24 +54,30 @@ export default function CartPage() {
       try {
         await cartService.updateItem(id, newQuantity);
       } catch (error) {
-        // ← Silent fail — local store already updated
+        // ← Silent fail
       }
     }
   };
 
-  // ← Handle remove item with backend sync
-  const handleRemoveItem = async (id: string) => {
-    // ← Remove from local store first
-    removeItem(id);
-
-    // ← Sync with backend if logged in
-    if (isAuthenticated) {
-      try {
-        await cartService.removeItem(id);
-      } catch (error) {
-        // ← Silent fail — local store already updated
-      }
-    }
+  // ← Handle remove with confirmation toast
+  const handleRemoveItem = (id: string, name: string) => {
+    // ← Show confirmation using notification store toast
+    addConfirmation(
+      `Remove "${name}" from your cart?`,
+      // ← onConfirm: Yes, Remove clicked
+      async () => {
+        removeItem(id);
+        addNotification(`"${name}" removed from cart`, 'info');
+        if (isAuthenticated) {
+          try {
+            await cartService.removeItem(id);
+          } catch (error) {
+            // ← Silent fail
+          }
+        }
+      },
+      // ← onCancel: Cancel clicked — do nothing
+    );
   };
 
   // ← Handle checkout
@@ -88,10 +97,8 @@ export default function CartPage() {
       setIsLoading(true);
       setOrderError('');
 
-      // ← Call backend checkout
       await cartService.checkout(shippingAddress);
 
-      // ← Clear local cart after successful order
       clearCart();
       setIsOrdered(true);
       addNotification('Order placed successfully!', 'success');
@@ -162,6 +169,8 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
+
+        {/* Header */}
         <div className="flex items-center gap-4 mb-10">
           <Link
             href="/menu"
@@ -173,6 +182,7 @@ export default function CartPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+
           {/* Items List */}
           <div className="lg:col-span-2 space-y-4">
             <AnimatePresence mode="popLayout">
@@ -193,17 +203,26 @@ export default function CartPage() {
                       className="object-cover"
                     />
                   </div>
+
                   <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-bold text-xl text-gray-900">{item.name}</h3>
-                    <p className="text-sm text-gray-500 font-medium">{item.category}</p>
+                    <h3 className="font-bold text-xl text-gray-900">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 font-medium">
+                      {item.category}
+                    </p>
                     <p className="text-orange-600 font-black text-lg mt-1">
                       ${item.price.toFixed(2)}
                     </p>
                   </div>
+
+                  {/* Quantity Controls */}
                   <div className="flex items-center gap-5 bg-gray-50 px-5 py-2.5 rounded-2xl">
+                    {/* ← Minus disabled at quantity 1 */}
                     <button
                       onClick={() => handleUpdateQuantity(item.id, -1)}
-                      className="text-gray-400 hover:text-orange-600 transition-colors"
+                      disabled={item.quantity <= 1}
+                      className="text-gray-400 hover:text-orange-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400"
                     >
                       <Minus size={20} />
                     </button>
@@ -217,8 +236,10 @@ export default function CartPage() {
                       <Plus size={20} />
                     </button>
                   </div>
+
+                  {/* ← Delete button triggers confirmation toast */}
                   <button
-                    onClick={() => handleRemoveItem(item.id)}
+                    onClick={() => handleRemoveItem(item.id, item.name)}
                     className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                   >
                     <Trash2 size={24} />
@@ -226,6 +247,21 @@ export default function CartPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
+
+            {/* ← Add Items button aligned with cards */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-end"
+            >
+              <Link
+                href="/menu"
+                className="flex items-center gap-2 bg-orange-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-orange-700 transition-all active:scale-95 shadow-lg shadow-orange-200"
+              >
+                <Plus size={18} />
+                Add Items
+              </Link>
+            </motion.div>
           </div>
 
           {/* Order Summary Sidebar */}

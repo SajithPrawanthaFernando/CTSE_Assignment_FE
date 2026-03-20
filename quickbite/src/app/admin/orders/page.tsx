@@ -46,9 +46,8 @@ export default function AdminOrdersPage() {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  // ← Updated: added addConfirmation
+  const { addNotification, addConfirmation } = useNotificationStore();
 
   useEffect(() => {
     fetchOrders();
@@ -102,22 +101,27 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ← Delete order
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm('Are you sure you want to delete this order?')) return;
+  // ← Delete order — uses confirmation toast same as cart page
+  const handleDeleteOrder = (orderId: string) => {
+    addConfirmation(
+      `Are you sure you want to delete order #${orderId.slice(-6).toUpperCase()}?`,
+      // ← onConfirm: Yes, Remove clicked
+      async () => {
+        try {
+          setDeletingOrderId(orderId);
+          await adminService.deleteOrder(orderId);
 
-    try {
-      setDeletingOrderId(orderId);
-      await adminService.deleteOrder(orderId);
-
-      // ← Remove from local state
-      setOrders(prev => prev.filter(o => o._id !== orderId));
-      addNotification('Order deleted successfully', 'success');
-    } catch (err) {
-      addNotification('Failed to delete order', 'error');
-    } finally {
-      setDeletingOrderId(null);
-    }
+          // ← Remove from local state
+          setOrders(prev => prev.filter(o => o._id !== orderId));
+          addNotification('Order deleted successfully', 'success');
+        } catch (err) {
+          addNotification('Failed to delete order', 'error');
+        } finally {
+          setDeletingOrderId(null);
+        }
+      },
+      // ← onCancel: Cancel clicked — do nothing
+    );
   };
 
   return (
