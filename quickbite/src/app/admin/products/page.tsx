@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Loader,
   Image as ImageIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { Product } from "@/types";
 import { adminProductService } from "@/services/admin.products.service";
@@ -33,6 +34,8 @@ export default function AdminProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const { addNotification } = useNotificationStore();
 
@@ -148,15 +151,19 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (deletingId !== id) {
-      setDeletingId(id);
-      return;
-    }
+  // Opens the confirmation dialog
+  const handleDeleteClick = (product: Product) => {
+    setDeleteTarget(product);
+  };
+
+  // Called when user confirms deletion in the dialog
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      setDeletingId(null);
-      await adminProductService.deleteProduct(id);
+      setIsDeleting(true);
+      await adminProductService.deleteProduct(deleteTarget.id);
       addNotification("Product deleted successfully", "success");
+      setDeleteTarget(null);
       fetchProducts();
     } catch (error: any) {
       addNotification(
@@ -164,7 +171,13 @@ export default function AdminProductsPage() {
         "error"
       );
       console.error("Error deleting product:", error);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
   };
 
   const handleEdit = (product: Product) => {
@@ -253,6 +266,94 @@ export default function AdminProductsPage() {
             </motion.button>
           )}
         </div>
+
+        {/* ── Delete Confirmation Dialog ── */}
+        <AnimatePresence>
+          {deleteTarget && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              onClick={handleDeleteCancel}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+              >
+                {/* Icon + heading */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <AlertTriangle size={24} className="text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Delete product?
+                    </h2>
+                  
+                  </div>
+                </div>
+
+                {/* Product preview */}
+                <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                    {deleteTarget.image ? (
+                      <img
+                        src={deleteTarget.image}
+                        alt={deleteTarget.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={16} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">
+                      {deleteTarget.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      ${(deleteTarget.price ?? 0).toFixed(2)} ·{" "}
+                      {deleteTarget.category}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleDeleteCancel}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form Modal */}
         <AnimatePresence>
@@ -584,30 +685,13 @@ export default function AdminProductsPage() {
                             >
                               <Edit2 size={18} />
                             </button>
-                            {deletingId === product.id ? (
-                              <div className="flex gap-1 items-center">
-                                <button
-                                  onClick={() => handleDelete(product.id)}
-                                  className="px-2 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => setDeletingId(null)}
-                                  className="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleDelete(product.id)}
-                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                                title="Delete"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleDeleteClick(product)}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                              title="Delete"
+                            >
+                              <Trash2 size={18} />
+                            </button>
                           </div>
                         </td>
                       </motion.tr>
