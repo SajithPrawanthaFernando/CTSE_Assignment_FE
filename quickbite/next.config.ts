@@ -36,7 +36,8 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         {
           source: "/api/:path*",
-          destination: "http://localhost:3009/:path*",
+          destination:
+            "https://quickbite-api-gateway.wonderfulcoast-2cb5966f.eastasia.azurecontainerapps.io/:path*",
         },
       ],
     };

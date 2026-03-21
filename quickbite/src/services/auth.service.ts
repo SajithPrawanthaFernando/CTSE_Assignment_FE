@@ -117,7 +117,7 @@ export const adminProductService = {
   // PATCH /products/:id — requires JWT
   async updateProduct(
     id: string,
-    productData: Partial<Omit<Product, "id">>
+    productData: Partial<Omit<Product, "id">>,
   ): Promise<Product> {
     try {
       const response = await api.patch(`/products/${id}`, productData);
