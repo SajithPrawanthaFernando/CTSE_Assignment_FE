@@ -10,38 +10,30 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { cartService } from "@/services/cart.service";
 
-// Local fallback — put any food image at public/placeholder-food.jpg
 const FALLBACK_IMAGE = "/placeholder-food.jpg";
 
 export const ProductCard = ({ product }: { product: Product }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   const addItem = useCartStore((state) => state.addItem);
-  const { isAuthenticated } = useAuthStore();         // ← add
+  const { isAuthenticated } = useAuthStore();
   const addNotification = useNotificationStore(
     (state) => state.addNotification,
   );
 
   const handleAddToCart = async () => {
-    // ← Check if logged in first
     if (!isAuthenticated) {
-      addNotification('Please login to add items to cart', 'error');
-      return; // ← stop here, don't add to cart
+      addNotification("Please login to add items to cart", "error");
+      return;
     }
 
     try {
       setIsAdding(true);
-
-      // ← Add to local Zustand store
       addItem(product);
-
-      // ← Sync with backend
       await cartService.addItem(product.id, 1);
-
-      addNotification(`${product.name} added to cart!`, 'success');
+      addNotification(`${product.name} added to cart!`, "success");
     } catch (error) {
-      // ← Even if backend fails, local cart is updated
-      addNotification(`${product.name} added to cart!`, 'success');
+      addNotification(`${product.name} added to cart!`, "success");
     } finally {
       setIsAdding(false);
     }
@@ -50,7 +42,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
   return (
     <motion.div
       layout
-      layoutId={productId || undefined}
+      layoutId={product.id || undefined}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -58,9 +50,9 @@ export const ProductCard = ({ product }: { product: Product }) => {
       className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 group"
     >
       <div className="relative h-48 w-full mb-4 overflow-hidden rounded-2xl bg-gray-100">
-        {productImage ? (
+        {product.image ? (
           <Image
-            src={productImage}
+            src={product.image}
             alt={product.name || "Food item"}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -70,7 +62,6 @@ export const ProductCard = ({ product }: { product: Product }) => {
             }}
           />
         ) : (
-          // Render nothing if no image at all — shows gray bg
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
             <span className="text-gray-400 text-sm">No image</span>
           </div>
