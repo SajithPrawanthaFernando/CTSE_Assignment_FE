@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
           source: "/api/:path*",
           destination:
             "https://quickbite-api-gateway.wonderfulcoast-2cb5966f.eastasia.azurecontainerapps.io/:path*",
+          // "http://localhost:3009/:path*",
         },
       ],
     };

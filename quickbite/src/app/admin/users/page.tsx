@@ -375,7 +375,7 @@ export default function AdminDashboardPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        key={u.id}
+                        key={u._id}
                         className="group hover:bg-gray-50/50 rounded-xl transition-colors"
                       >
                         <td className="px-4 py-3 rounded-l-xl">

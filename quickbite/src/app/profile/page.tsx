@@ -14,7 +14,8 @@ import {
   Award,
   Check,
   X,
-  LayoutDashboard, // Added this import
+  LayoutDashboard,
+  Loader2, // Added for loading state
 } from "lucide-react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -35,10 +36,8 @@ export default function ProfilePage() {
     (state) => state.addNotification,
   );
 
-  // Safely check if the current user is an admin
   const isAdmin = user?.roles?.some((role) => role.toLowerCase() === "admin");
 
-  // Form State
   const [formData, setFormData] = useState({
     fullname: "",
     phone: "",
@@ -47,6 +46,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setMounted(true);
+    console.log("User Data on Profile Load:", user);
     if (user) {
       setFormData({
         fullname: user.fullname || "",
@@ -57,15 +57,31 @@ export default function ProfilePage() {
   }, [user]);
 
   const handleUpdate = async () => {
-    if (!user?.id) return;
+    console.log(user);
+    if (!user?._id && !user?.id) {
+      addNotification("User ID not found. Please log in again.", "error");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const updatedUser = await authService.updateProfile(user.id, formData);
-      setAuth(updatedUser, token!);
-      addNotification("Profile updated successfully!", "success");
-      setIsEditing(false);
-    } catch (error) {
-      addNotification("Failed to update profile", "error");
+      // 1. Call the API
+      const updatedUser = await authService.updateProfile(
+        user._id || user.id,
+        formData,
+      );
+
+      // 2. Update local Zustand store (Ensure token is passed back)
+      if (updatedUser) {
+        setAuth(updatedUser, token || "");
+        addNotification("Profile updated successfully!", "success");
+        setIsEditing(false); // Exit edit mode
+      }
+    } catch (error: any) {
+      console.error("Profile Update Error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update profile";
+      addNotification(errorMessage, "error");
     } finally {
       setIsLoading(false);
     }
@@ -120,9 +136,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Action Buttons Container */}
           <div className="space-y-3">
-            {/* Admin Dashboard Button - Conditionally Rendered */}
             {isAdmin && (
               <Link
                 href="/admin"
@@ -133,11 +147,10 @@ export default function ProfilePage() {
               </Link>
             )}
 
-            {/* Logout Button */}
             <button
               onClick={() => {
                 logout();
-                window.location.href = "/login"; // Fallback redirect if middleware misses
+                window.location.href = "/login";
               }}
               className="w-full flex items-center justify-center gap-2 text-red-500 font-bold py-4 rounded-2xl bg-red-50 hover:bg-red-100 transition-all active:scale-95"
             >
@@ -184,7 +197,6 @@ export default function ProfilePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Full Name */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase ml-1">
                   Full Name
@@ -207,7 +219,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Email (Disabled/Locked) */}
               <div className="space-y-1 opacity-60">
                 <label className="text-xs font-bold text-gray-400 uppercase ml-1">
                   Email Address
@@ -220,7 +231,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Phone Number */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase ml-1">
                   Phone Number
@@ -243,7 +253,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Payment (Static) */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase ml-1">
                   Default Payment
@@ -257,7 +266,6 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Address */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-400 uppercase ml-1">
                 Primary Address
@@ -281,19 +289,28 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Action Button */}
             <button
-              onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
+              type="button"
+              onClick={() => {
+                if (isEditing) {
+                  handleUpdate();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
               disabled={isLoading}
               className={cn(
                 "w-full py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2",
                 isEditing
                   ? "bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200"
                   : "bg-gray-900 text-white hover:bg-orange-600 shadow-gray-200",
+                isLoading && "opacity-70 cursor-not-allowed",
               )}
             >
               {isLoading ? (
-                "Saving Changes..."
+                <>
+                  <Loader2 className="animate-spin" size={20} /> Saving...
+                </>
               ) : isEditing ? (
                 <>
                   <Check size={20} /> Save New Details

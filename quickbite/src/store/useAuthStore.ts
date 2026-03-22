@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 interface User {
   id: string;
+  _id?: string;
   email: string;
   fullname: string;
   roles: string[];
@@ -12,9 +13,9 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null; // Add this
+  token: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void; // Update this
+  setAuth: (user: User, token: string) => void;
   clearAuth: () => void;
 }
 
