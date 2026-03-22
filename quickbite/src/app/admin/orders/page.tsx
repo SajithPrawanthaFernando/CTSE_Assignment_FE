@@ -46,14 +46,14 @@ export default function AdminOrdersPage() {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
-  // ← Updated: added addConfirmation
+  //    Updated: added addConfirmation
   const { addNotification, addConfirmation } = useNotificationStore();
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  // ← Filter orders when search or status changes
+  //    Filter orders when search or status changes
   useEffect(() => {
     let result = orders;
 
@@ -83,13 +83,13 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ← Update order status
+  //    Update order status
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdatingOrderId(orderId);
       await adminService.updateOrderStatus(orderId, newStatus);
 
-      // ← Update local state
+      //    Update local state
       setOrders(prev =>
         prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o)
       );
@@ -101,17 +101,17 @@ export default function AdminOrdersPage() {
     }
   };
 
-  // ← Delete order — uses confirmation toast same as cart page
+  //    Delete order — uses confirmation toast same as cart page
   const handleDeleteOrder = (orderId: string) => {
     addConfirmation(
       `Are you sure you want to delete order #${orderId.slice(-6).toUpperCase()}?`,
-      // ← onConfirm: Yes, Remove clicked
+      //    onConfirm: Yes, Remove clicked
       async () => {
         try {
           setDeletingOrderId(orderId);
           await adminService.deleteOrder(orderId);
 
-          // ← Remove from local state
+          //    Remove from local state
           setOrders(prev => prev.filter(o => o._id !== orderId));
           addNotification('Order deleted successfully', 'success');
         } catch (err) {
@@ -120,7 +120,7 @@ export default function AdminOrdersPage() {
           setDeletingOrderId(null);
         }
       },
-      // ← onCancel: Cancel clicked — do nothing
+      //    onCancel: Cancel clicked — do nothing
     );
   };
 

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware"; // ← add import
+import { persist } from "zustand/middleware"; //    add import
 import { Product } from "@/types";
 
 interface CartItem extends Product {
@@ -16,7 +16,7 @@ interface CartState {
 }
 
 export const useCartStore = create<CartState>()(
-  persist( // ← wrap with persist
+  persist( //    wrap with persist
     (set, get) => ({
       items: [],
       addItem: (product) => {
@@ -49,6 +49,6 @@ export const useCartStore = create<CartState>()(
       getTotalPrice: () =>
         get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
     }),
-    { name: "gusto-cart-storage" }, // ← localStorage key
+    { name: "gusto-cart-storage" }, //    localStorage key
   ),
 );

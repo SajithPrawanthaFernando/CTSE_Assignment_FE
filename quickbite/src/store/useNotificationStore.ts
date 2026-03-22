@@ -1,19 +1,19 @@
 import { create } from "zustand";
 
-export type NotificationType = "success" | "error" | "info" | "confirm"; // ← add confirm
+export type NotificationType = "success" | "error" | "info" | "confirm"; //    add confirm
 
 interface Notification {
   id: string;
   message: string;
   type: NotificationType;
-  onConfirm?: () => void; // ← callback for yes
-  onCancel?: () => void;  // ← callback for no
+  onConfirm?: () => void; //    callback for yes
+  onCancel?: () => void;  //    callback for no
 }
 
 interface NotificationState {
   notifications: Notification[];
   addNotification: (message: string, type?: NotificationType) => void;
-  addConfirmation: (               // ← NEW
+  addConfirmation: (               //    NEW
     message: string,
     onConfirm: () => void,
     onCancel?: () => void,
@@ -37,7 +37,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     }, 3000);
   },
 
-  // ← NEW: Confirmation stays until user clicks Yes or No
+  // Confirmation stays until user clicks Yes or No
   addConfirmation: (message, onConfirm, onCancel) => {
     const id = Math.random().toString(36).substring(2, 9);
     set((state) => ({
@@ -62,7 +62,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         },
       ],
     }));
-    // ← No auto-remove for confirmations
+    // No auto-remove for confirmations
   },
 
   removeNotification: (id) =>

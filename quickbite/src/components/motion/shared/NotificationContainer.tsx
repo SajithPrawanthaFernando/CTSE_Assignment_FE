@@ -7,7 +7,7 @@ const icons = {
   success: <CheckCircle className="text-green-500" size={18} />,
   error: <AlertCircle className="text-red-500" size={18} />,
   info: <Info className="text-blue-500" size={18} />,
-  confirm: <Trash2 className="text-red-500" size={18} />, // ← NEW
+  confirm: <Trash2 className="text-red-500" size={18} />, //    NEW
 };
 
 export const NotificationContainer = () => {
@@ -25,7 +25,7 @@ export const NotificationContainer = () => {
             className="bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 flex flex-col gap-3"
           >
             {n.type === 'confirm' ? (
-              // ← Confirmation toast with Yes/No buttons
+              //    Confirmation toast with Yes/No buttons
               <>
                 <div className="flex items-center gap-3">
                   {icons.confirm}
@@ -34,7 +34,7 @@ export const NotificationContainer = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 ml-7">
-                  {/* ← Yes button */}
+                  {/*    Yes button */}
                   <button
                     onClick={n.onConfirm}
                     className="flex items-center gap-1.5 bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-all active:scale-95 flex-1 justify-center"
@@ -42,7 +42,7 @@ export const NotificationContainer = () => {
                     <Check size={14} />
                     Yes, Remove
                   </button>
-                  {/* ← No button */}
+                  {/*    No button */}
                   <button
                     onClick={n.onCancel}
                     className="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all active:scale-95 flex-1 justify-center"
@@ -53,7 +53,7 @@ export const NotificationContainer = () => {
                 </div>
               </>
             ) : (
-              // ← Normal toast
+              //    Normal toast
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   {icons[n.type]}

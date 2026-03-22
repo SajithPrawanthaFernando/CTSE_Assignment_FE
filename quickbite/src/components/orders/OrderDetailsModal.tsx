@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { X, MapPin, Calendar, CreditCard, Hash, Package } from "lucide-react";
 import { useState, useEffect } from "react";
-import { productService } from "@/services/product.service"; // ← import
+import { productService } from "@/services/product.service"; //    import
 
 interface OrderItem {
   productId: string;
@@ -47,38 +47,38 @@ const formatDate = (dateString: string) => {
 };
 
 export const OrderDetailsModal = ({ order, onClose }: OrderDetailsProps) => {
-  // ← Store product names fetched from backend
+  //    Store product names fetched from backend
   const [productNames, setProductNames] = useState<Record<string, string>>({});
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // ← Fetch product names when modal opens
+  //    Fetch product names when modal opens
   useEffect(() => {
     const fetchProductNames = async () => {
       try {
-        // ← Fetch all unique product IDs in this order
+        //    Fetch all unique product IDs in this order
         const uniqueProductIds = [...new Set(order.items.map(item => item.productId))];
 
-        // ← Fetch each product from backend
+        //    Fetch each product from backend
         const productPromises = uniqueProductIds.map(id =>
           productService.getProductById(id).catch(() => null)
         );
 
         const products = await Promise.all(productPromises);
 
-        // ← Build productId → name map
+        //    Build productId → name map
         const nameMap: Record<string, string> = {};
         products.forEach((product, index) => {
           if (product) {
             nameMap[uniqueProductIds[index]] = product.name;
           } else {
-            // ← Fallback to productId if fetch fails
+            //    Fallback to productId if fetch fails
             nameMap[uniqueProductIds[index]] = uniqueProductIds[index];
           }
         });
 
         setProductNames(nameMap);
       } catch (error) {
-        // ← If fetch fails, use productId as fallback
+        //    If fetch fails, use productId as fallback
         const fallbackMap: Record<string, string> = {};
         order.items.forEach(item => {
           fallbackMap[item.productId] = item.productId;
@@ -159,10 +159,10 @@ export const OrderDetailsModal = ({ order, onClose }: OrderDetailsProps) => {
                   <div>
                     <p className="text-sm font-bold">
                       {loadingProducts ? (
-                        // ← Loading skeleton
+                        //    Loading skeleton
                         <span className="inline-block w-24 h-4 bg-gray-200 rounded animate-pulse" />
                       ) : (
-                        // ← Real product name from backend
+                        //    Real product name from backend
                         productNames[item.productId] || item.productId
                       )}
                     </p>

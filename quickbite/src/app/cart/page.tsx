@@ -26,7 +26,7 @@ export default function CartPage() {
 
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const { isAuthenticated } = useAuthStore();
-  const { addNotification, addConfirmation } = useNotificationStore(); // ← updated
+  const { addNotification, addConfirmation } = useNotificationStore(); //    updated
 
   useEffect(() => {
     setMounted(true);
@@ -36,35 +36,35 @@ export default function CartPage() {
   const deliveryFee = subtotal > 0 ? 2.5 : 0;
   const total = subtotal + deliveryFee;
 
-  // ← Handle quantity update with backend sync
+  //    Handle quantity update with backend sync
   const handleUpdateQuantity = async (id: string, delta: number) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
 
-    // ← Prevent going below 1
+    //    Prevent going below 1
     if (item.quantity <= 1 && delta < 0) return;
 
     const newQuantity = item.quantity + delta;
 
-    // ← Update local store first
+    //    Update local store first
     updateQuantity(id, delta);
 
-    // ← Sync with backend if logged in
+    //    Sync with backend if logged in
     if (isAuthenticated) {
       try {
         await cartService.updateItem(id, newQuantity);
       } catch (error) {
-        // ← Silent fail
+        //    Silent fail
       }
     }
   };
 
-  // ← Handle remove with confirmation toast
+  //    Handle remove with confirmation toast
   const handleRemoveItem = (id: string, name: string) => {
-    // ← Show confirmation using notification store toast
+    //    Show confirmation using notification store toast
     addConfirmation(
       `Remove "${name}" from your cart?`,
-      // ← onConfirm: Yes, Remove clicked
+      //    onConfirm: Yes, Remove clicked
       async () => {
         removeItem(id);
         addNotification(`"${name}" removed from cart`, 'info');
@@ -72,15 +72,15 @@ export default function CartPage() {
           try {
             await cartService.removeItem(id);
           } catch (error) {
-            // ← Silent fail
+            //    Silent fail
           }
         }
       },
-      // ← onCancel: Cancel clicked — do nothing
+      //    onCancel: Cancel clicked — do nothing
     );
   };
 
-  // ← Handle checkout
+  //    Handle checkout
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
       addNotification('Please login to place an order', 'error');
@@ -218,7 +218,7 @@ export default function CartPage() {
 
                   {/* Quantity Controls */}
                   <div className="flex items-center gap-5 bg-gray-50 px-5 py-2.5 rounded-2xl">
-                    {/* ← Minus disabled at quantity 1 */}
+                    {/*    Minus disabled at quantity 1 */}
                     <button
                       onClick={() => handleUpdateQuantity(item.id, -1)}
                       disabled={item.quantity <= 1}
@@ -237,7 +237,7 @@ export default function CartPage() {
                     </button>
                   </div>
 
-                  {/* ← Delete button triggers confirmation toast */}
+                  {/*    Delete button triggers confirmation toast */}
                   <button
                     onClick={() => handleRemoveItem(item.id, item.name)}
                     className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
@@ -248,7 +248,7 @@ export default function CartPage() {
               ))}
             </AnimatePresence>
 
-            {/* ← Add Items button aligned with cards */}
+            {/*    Add Items button aligned with cards */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

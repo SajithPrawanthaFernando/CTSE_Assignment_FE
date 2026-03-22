@@ -18,10 +18,10 @@ export default function OrdersPage() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
 
-  // ← Fetch orders from backend on mount
+  //    Fetch orders from backend on mount
   useEffect(() => {
     const fetchOrders = async () => {
-      // ← Redirect if not logged in
+      //    Redirect if not logged in
       if (!isAuthenticated) {
         router.push('/login');
         return;
@@ -41,7 +41,7 @@ export default function OrdersPage() {
     fetchOrders();
   }, [isAuthenticated, router]);
 
-  // ← Helper to format date
+  //    Helper to format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -50,7 +50,7 @@ export default function OrdersPage() {
     });
   };
 
-  // ← Helper to get status color
+  //    Helper to get status color
   const getStatusStyle = (status: string) => {
     switch (status.toUpperCase()) {
       case 'DELIVERED':
@@ -69,7 +69,7 @@ export default function OrdersPage() {
     }
   };
 
-  // ← Loading state
+  //    Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
@@ -83,7 +83,7 @@ export default function OrdersPage() {
     );
   }
 
-  // ← Error state
+  //    Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
@@ -100,7 +100,7 @@ export default function OrdersPage() {
     );
   }
 
-  // ← Empty state
+  //    Empty state
   if (orders.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
@@ -158,7 +158,7 @@ export default function OrdersPage() {
                 </div>
                 <div>
                   <p className="font-black text-lg text-gray-900 leading-tight">
-                    #{order._id.slice(-6).toUpperCase()} {/* ← show last 6 chars of ID */}
+                    #{order._id.slice(-6).toUpperCase()} {/*    show last 6 chars of ID */}
                   </p>
                   <p className="text-sm text-gray-500 font-medium mt-1">
                     {formatDate(order.createdAt)} • {order.items.length}{" "}

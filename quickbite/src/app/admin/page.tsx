@@ -19,7 +19,7 @@ import { adminService } from "@/services/admin.service";
 
 const CHART_DATA = [40, 70, 45, 90, 65, 85, 100];
 
-// ← Status style helper
+//    Status style helper
 const getStatusStyle = (status: string) => {
   switch (status?.toUpperCase()) {
     case 'DELIVERED':  return 'bg-teal-100 text-teal-700';
@@ -32,7 +32,7 @@ const getStatusStyle = (status: string) => {
   }
 };
 
-// ← Format date helper
+//    Format date helper
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     month: 'short',
@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // ← Calculate real stats from orders
+  //    Calculate real stats from orders
   const totalRevenue = orders.reduce(
     (sum, o) => sum + (o.totalAmount || 0), 0
   );
@@ -338,7 +338,7 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* ← Show latest 5 orders */}
+                  {/*    Show latest 5 orders */}
                   {orders.slice(0, 5).map((order) => (
                     <motion.tr
                       initial={{ opacity: 0, y: 10 }}
