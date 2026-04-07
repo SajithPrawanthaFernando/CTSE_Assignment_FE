@@ -14,6 +14,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { cartService } from "@/services/cart.service";
 import { OrderSuccess } from "@/components/motion/shared/OrderSuccess";
+import { notificationService } from "@/services/notification.service";
+
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
