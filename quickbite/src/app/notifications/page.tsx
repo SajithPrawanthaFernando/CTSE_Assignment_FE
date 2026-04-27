@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -11,64 +11,122 @@ import {
   Info,
   ChevronRight,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { notificationService, NotificationData } from "@/services/notification.service";
+import { useNotificationStore } from "@/store/useNotificationStore"; // <-- Imported your store
 
-// Mock Data for the Notification Inbox
-const MOCK_NOTIFS = [
-  {
-    id: "1",
-    title: "Order Delivered",
-    desc: "Your order #GB-8821 has been delivered. Enjoy your meal!",
-    time: "2 mins ago",
-    type: "order",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "Flash Sale! 20% Off",
-    desc: "Use code GUSTO20 for 20% off on all Burgers today.",
-    time: "1 hour ago",
-    type: "promo",
-    read: false,
-  },
-  {
-    id: "3",
-    title: "Payment Successful",
-    desc: "We received your payment for order #GB-9012.",
-    time: "3 hours ago",
-    type: "info",
-    read: true,
-  },
-];
+const timeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.round(minutes / 60);
+  const days = Math.round(hours / 24);
+
+  if (seconds < 60) return "Just now";
+  if (minutes < 60) return `${minutes} mins ago`;
+  if (hours < 24) return `${hours} hours ago`;
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+};
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFS);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const previousNotifsRef = useRef<NotificationData[]>([]);
+  
+  const { addNotification, addConfirmation } = useNotificationStore();
 
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  useEffect(() => {
+    // Initial fetch
+    fetchNotifications(true);
+
+    const intervalId = setInterval(() => {
+      fetchNotifications(false);
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const fetchNotifications = async (showInitialLoader = false) => {
+    if (showInitialLoader) setIsLoading(true);
+    
+    try {
+      const data = await notificationService.getNotifications();
+      
+      if (previousNotifsRef.current.length > 0) {
+        const newItems = data.filter(
+          (newItem) => !previousNotifsRef.current.some((oldItem) => oldItem._id === newItem._id)
+        );
+
+        newItems.forEach((notif) => {
+          const type = notif.type.toUpperCase() === 'ORDER' ? 'success' : 'info';
+          addNotification(notif.title, type as any); 
+        });
+      }
+
+      setNotifications(data);
+      previousNotifsRef.current = data; // Update our reference for the next poll
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      if (showInitialLoader) setIsLoading(false);
+    }
   };
 
-  const deleteNotif = (id: string) => {
-    setNotifications(notifications.filter((n) => n.id !== id));
+  const markAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
+      addNotification("All notifications marked as read", "success");
+    } catch (error) {
+      addNotification("Failed to mark notifications as read", "error");
+    }
+  };
+
+  const deleteNotif = async (id: string, title: string) => {
+    // Using your custom confirmation toast (like in the cart page)
+    addConfirmation(
+      `Delete notification "${title}"?`,
+      async () => {
+        try {
+          await notificationService.deleteNotification(id);
+          setNotifications(prev => prev.filter((n) => n._id !== id));
+          addNotification("Notification deleted", "info");
+        } catch (error) {
+          addNotification("Failed to delete notification", "error");
+        }
+      }
+    );
   };
 
   const getIcon = (type: string) => {
-    switch (type) {
-      case "order":
+    switch (type?.toUpperCase()) {
+      case "ORDER":
         return <ShoppingBag className="text-orange-600" size={20} />;
-      case "promo":
+      case "PROMO":
         return <Zap className="text-yellow-600" size={20} />;
+      case "PAYMENT":
       default:
         return <Info className="text-blue-600" size={20} />;
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="animate-spin text-orange-600" size={40} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-6">
       <div className="max-w-3xl mx-auto">
-        {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-4">
             <Link
@@ -80,7 +138,7 @@ export default function NotificationsPage() {
             <h1 className="text-4xl font-black text-gray-900">Notifications</h1>
           </div>
 
-          {notifications.length > 0 && (
+          {notifications.some(n => !n.isRead) && (
             <button
               onClick={markAllRead}
               className="flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors px-4 py-2 bg-orange-50 rounded-xl"
@@ -91,13 +149,12 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {/* Notifications List */}
         <div className="space-y-4">
           <AnimatePresence mode="popLayout">
             {notifications.length > 0 ? (
               notifications.map((n, index) => (
                 <motion.div
-                  key={n.id}
+                  key={n._id}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -105,23 +162,21 @@ export default function NotificationsPage() {
                   transition={{ delay: index * 0.05 }}
                   className={cn(
                     "group relative flex items-start gap-4 p-6 rounded-[2rem] border transition-all cursor-pointer shadow-sm",
-                    n.read
+                    n.isRead 
                       ? "bg-white border-gray-100"
                       : "bg-white border-orange-200 ring-1 ring-orange-100",
                   )}
                 >
-                  {/* Unread Indicator */}
-                  {!n.read && (
+                  {!n.isRead && (
                     <span className="absolute top-6 left-2 w-2 h-2 bg-orange-600 rounded-full" />
                   )}
 
-                  {/* Icon Wrapper */}
                   <div
                     className={cn(
                       "p-4 rounded-2xl flex-shrink-0",
-                      n.type === "order"
+                      n.type?.toUpperCase() === "ORDER"
                         ? "bg-orange-50"
-                        : n.type === "promo"
+                        : n.type?.toUpperCase() === "PROMO"
                           ? "bg-yellow-50"
                           : "bg-blue-50",
                     )}
@@ -129,32 +184,30 @@ export default function NotificationsPage() {
                     {getIcon(n.type)}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                       <h3
                         className={cn(
                           "font-bold text-lg",
-                          n.read ? "text-gray-700" : "text-gray-900",
+                          n.isRead ? "text-gray-700" : "text-gray-900",
                         )}
                       >
                         {n.title}
                       </h3>
                       <span className="text-xs font-medium text-gray-400">
-                        {n.time}
+                        {timeAgo(n.createdAt)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 leading-relaxed max-w-md">
-                      {n.desc}
+                      {n.message}
                     </p>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        deleteNotif(n.id);
+                        deleteNotif(n._id, n.title); // <-- Updated to pass title for the confirmation toast
                       }}
                       className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                     >
@@ -165,7 +218,6 @@ export default function NotificationsPage() {
                 </motion.div>
               ))
             ) : (
-              // Empty State
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
